@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.springframework.org/schema/security">
+
+<head>
+  <meta charset="utf-8">
+  <title>SpringBoot Sample3-3</title>
+</head>
+
+<body>
+  <div><a href="/logout">ログアウト</a></div>
+
+  <h1>Janken Game!</h1>
+
+  <h3>エントリー<div sec:authentication="name"></div>
+  </h3>
+
+  <div hr:if="${yourName}">
+    Hi [[${yourname}]]
+  </div>
+
+  <div>
+    <a href="/jankengame?hand=Gu">ぐー</a>
+    <a href="/jankengame?hand=Choki">ちょき</a>
+    <a href="/jankengame?hand=pa">ぱー</a>
+  </div>
+  <!--
+  <div hr:if="${yourName}">
+    あなたの手 [[${yourhand}]]
+  </div>
+  <div hr:if="${yourName}">
+    相手の手 [[${cpuhand}]]
+  </div>
+  <div hr:if="${judge}">
+    結果 [[${judge}]]
+  </div>
+  -->
+</body>
+
+</html>
