@@ -1,4 +1,4 @@
-package oit.is.z0681.kaizi.janken.mode;
+package oit.is.z0681.kaizi.janken.model;
 
 import java.util.ArrayList;
 
@@ -7,27 +7,24 @@ import org.springframework.stereotype.Component;
 @Component
 public class Entry {
   ArrayList<String> users = new ArrayList<>();
-  int roomNo = 1;
+  int userCnt = 0;
 
   public void addUser(String name) {
-    // 同名のユーザが居たら何もせずにreturn
     for (String s : this.users) {
       if (s.equals(name)) {
         return;
       }
     }
-    // 同名のユーザが居なかった場合はusersにnameを追加する
     this.users.add(name);
+    userCnt++;
   }
 
-  // 以降はフィールドのgetter/setter
-  // これらがないとThymeleafで値を取得できない
-  public int getRoomNo() {
-    return roomNo;
+  public int getUserCnt() {
+    return userCnt;
   }
 
-  public void setRoomNo(int roomNo) {
-    this.roomNo = roomNo;
+  public void setUserCnt(int cnt) {
+    this.userCnt = cnt;
   }
 
   public ArrayList<String> getUsers() {

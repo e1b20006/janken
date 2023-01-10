@@ -1,71 +1,101 @@
-package oit.is.z0681.kaizi.janken.Controller;
+package oit.is.z0681.kaizi.janken.controller;
 
 import java.security.Principal;
+import java.util.ArrayList;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import oit.is.z0681.kaizi.janken.mode.Entry;
+import oit.is.z0681.kaizi.janken.model.User;
+import oit.is.z0681.kaizi.janken.model.UserMapper;
+import oit.is.z0681.kaizi.janken.service.AsyncKekka;
+import oit.is.z0681.kaizi.janken.model.Match;
+import oit.is.z0681.kaizi.janken.model.MatchMapper;
+import oit.is.z0681.kaizi.janken.model.MatchInfo;
+import oit.is.z0681.kaizi.janken.model.MatchInfoMapper;
 
 @Controller
-@RequestMapping("/janken")
 public class JankenController {
 
   @Autowired
-  private Entry room;
+  UserMapper userMapper;
 
-  // @GetMapping("step1")
-  // public String sample31() {
-  // return "sample31.html";
-  // }
+  @Autowired
+  MatchMapper matchMapper;
 
-  // @GetMapping("step2")
-  // public String sample32(ModelMap model, Principal //prin) {
-  // String loginUser = prin.getName(); // ログインユーザ情報
-  // model.addAttribute("login_user", loginUser);
-  // return "sample31.html";
-  // }
+  @Autowired
+  MatchInfoMapper matchInfoMapper;
 
-  @GetMapping("step3")
-  public String sample33() {
+  @Autowired
+  AsyncKekka asyncKekka;
+
+  @GetMapping("/janken")
+  @Transactional
+  public String janken(Principal prin, ModelMap model) {
+    String loginUser = prin.getName();
+    ArrayList<User> users = userMapper.selectAllUser();
+    ArrayList<Match> matches = matchMapper.selectAllMatch();
+    ArrayList<MatchInfo> matchInfo = matchInfoMapper.selectMatchInfoByTrue();
+    model.addAttribute("user", loginUser);
+    model.addAttribute("users", users);
+    model.addAttribute("matches", matches);
+    model.addAttribute("matchInfo", matchInfo);
     return "janken.html";
   }
 
-  // @PostMapping("step6")
-  // public String sample36(@RequestParam Integer hiku1, //@RequestParam Integer
-  // hiku2, ModelMap model) {
-  // int kekka = hiku1 - hiku2;
-  // model.addAttribute("hikukekka", kekka);
-  // return "sample33.html";
-  // }
-
-  // @GetMapping("step7")
-  // public String sample37() {
-  // return "sample37.html";
-  // }
-
-  @GetMapping("step8")
-  public String sample38(Principal prin, ModelMap model) {
+  @GetMapping("/match")
+  public String match(@RequestParam int id, Principal prin, ModelMap model) {
     String loginUser = prin.getName();
-    this.room.addUser(loginUser);
-    model.addAttribute("room", this.room);
-
-    return "sample37.html";
+    User user1 = userMapper.selectByName(loginUser);
+    User user2 = userMapper.selectById(id);
+    model.addAttribute("user1", user1);
+    model.addAttribute("user2", user2);
+    return "match.html";
   }
 
-  @GetMapping("step9")
-  public String sample39(Principal prin, ModelMap model) {
+  @GetMapping("/fight")
+  public String fight(@RequestParam int id, @RequestParam String hand, Principal prin, ModelMap model) {
     String loginUser = prin.getName();
-    Entry newRoom = new Entry();
-    newRoom.addUser(loginUser);
-    model.addAttribute("new_room", newRoom);
+    User user1 = userMapper.selectByName(loginUser);
+    ArrayList<MatchInfo> matchInfos = matchInfoMapper.selectMatchInfoBytrueId(user1.getId(), id);
+    if (matchInfos.size() == 0) {
+      matchInfoMapper.insertMatchInfo(user1.getId(), id, hand, true);
+    } else if (matchInfos.size() == 1) {
+      MatchInfo matchInfo = matchInfos.get(0);
+      this.asyncKekka.syncInsertMatch(matchInfo, hand);
+    }
+    model.addAttribute("user", loginUser);
+    return "wait.html";
+  }
 
-    return "sample37.html";
+  @GetMapping("/janken/{param1}")
+  @Transactional
+  public String janken(@PathVariable int param1, Principal prin, ModelMap model) {
+    String loginUser = prin.getName();
+    Match match = matchMapper.selectMatchByID(param1);
+    matchMapper.updateByTrue(param1);
+    matchInfoMapper.updateByTrue(match.getUser1(), match.getUser2(), match.getUser1Hand());
+    ArrayList<User> users = userMapper.selectAllUser();
+    ArrayList<Match> matches = matchMapper.selectAllMatch();
+    ArrayList<MatchInfo> matchInfo = matchInfoMapper.selectMatchInfoByTrue();
+    model.addAttribute("user", loginUser);
+    model.addAttribute("users", users);
+    model.addAttribute("matches", matches);
+    model.addAttribute("matchInfo", matchInfo);
+    return "janken.html";
+  }
+
+  @GetMapping("/sse")
+  public SseEmitter showKekka() {
+    final SseEmitter sseEmitter = new SseEmitter();
+    this.asyncKekka.asyncShowkekka(sseEmitter);
+    return sseEmitter;
   }
 
 }
